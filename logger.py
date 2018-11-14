@@ -2,7 +2,7 @@ import logging as _logging
 import time
 import enum
 import itertools
-__all__ = ['debug', 'info', 'set_file']
+__all__ = ['debug', 'info', 'set_file', 'set_colors']
 
 class Colors(enum.Enum):
     BLACK   = '\u001b[30m'
@@ -15,6 +15,13 @@ class Colors(enum.Enum):
     WHITE   = '\u001b[37m'
     RESET   = '\u001b[0m'
 
+MACROS = {
+    "$T": "time.ctime()",
+    "$U": "self.user",
+    "$L": "level",
+    "$M": "message"
+}
+
 def _write(m, color):
     c = color.upper()
     if c in Colors.__members__:
@@ -22,32 +29,49 @@ def _write(m, color):
     return m
 
 class Logger:
-    def __init__(self, file=f'LOGS_{time.time()}.txt', user='root',):
-                 # format_func=lambda user, level, message:[str(time.time()), self.user,level, message]):
+    def __init__(self, file=f'LOGS_{time.ctime()}.txt', user='root',
+                 colors=['blue', 'magenta', 'cyan', 'black'], fstr=['$T', '$U', '$L', '$M']):
         self.file = file
         self.user = user
-        # self.format_func = format_func
-        self.colors = ['blue', 'magenta', 'cyan', 'black']
+        self.colors = colors
+        self.fstr = fstr
 
-    def _get_str(self, message, level):
-        yield from itertools.starmap(_write, zip([time.time(), self.user, level, message], self.colors))
+    def _get_str(self, message, level, colors):
+        f = [MACROS[macro] for macro in self.fstr]
+        yield from itertools.starmap(_write, zip(map(eval, f), colors))
+        yield "\n"
             
     def debug(self, message):
-        print(f"DEBUG:{self.user}:{message}", file=open(self.file, 'a'))
+        with open(self.file, 'a') as file:
+            for colored_str in self._get_str(message, "DEBUG", ["none"] * 4):
+                print(colored_str, end=' ', file=file)
 
     def info(self, message):
-        for colored_str in self._get_str(message, 'INFO'):
+        for colored_str in self._get_str(message, 'INFO', self.colors):
             print(colored_str, end=' ')
 
-logger = Logger()
+    def config(self, config):
+        attrs = ['file', 'user', 'colors', 'fstr']
+        for name, value in config.items():
+            if name in attrs:
+                setattr(self, name, value)
+                
+_logger = Logger()
 
 def set_file(f):
-    logger.file = f
+    _logger.file = f
+
+def set_colors(colors):
+    _logger.colors = colors
+
+def set_format(fstr):
+    _logger.fstr = fstr
+
+def config(config):
+    _logger.config(config)
 
 def debug(m):
-    logger.debug(m)
+    _logger.debug(m)
 
 def info(m):
-    logger.info(m)
-
-info("hi!")
+    _logger.info(m)
