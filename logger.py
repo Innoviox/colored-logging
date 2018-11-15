@@ -2,6 +2,8 @@ import logging as _logging
 import time
 import enum
 import itertools
+import os
+import sys
 
 class Colors(enum.Enum):
     """
@@ -25,10 +27,12 @@ These macros are expanded from the Logger.fstr attribute.
 Anything that is not in these macros will be interpreted
 as a raw string. For example, if Logger.fstr is ['$T', '$U', '$M'],
 the output will be the time, the user, and the message. The
-output is space-separated.
+output is space-separated. If you want part of the
+output to be colored, put the color after like this: $T:RED.
+No color means black output.
 """
 MACROS = {
-    "$T": "time.ctime()",
+    "$T": "time.strftime(self.datefmt, time.gmtime())",
     "$U": "self.user",
     "$L": "level",
     "$M": "m"
@@ -46,45 +50,76 @@ def _write(m, color):
     return m
 
 class Logger:
-    def __init__(self, file=f'LOGS {time.ctime()}.txt', user='root',
-                 colors=['blue', 'magenta', 'cyan', 'black'], fstr=['$T', '$U', '$L', '$M'],
-                 max_line_length=20):
+    def __init__(self, file=f'logs/nephos.log', user=os.getlogin(),
+                 fstr=['$T:BLUE', '$U:MAGENTA', '$L:CYAN', '$M'],
+                 max_line_length=20, datefmt='%m/%d/%Y %H:%M:%S'):
+        """
+        This class handles the logging. Multiple Loggers can be instantiated.
+        file: the file to write to in DEBUG mode
+        user: the user logging, default is the current user
+        fstr: the way the output should be formatted. See MACROS.
+        max_line_length: maximum output length per line. None for all in one line.
+        datefmt: the way the date should be formatted
+        """
         self.file = file
         self.user = user
-        self.colors = colors
         self.fstr = fstr
         self.max_line_length = max_line_length
+        self.datefmt = datefmt
 
-    def _get_str(self, message, level, colors):
+    def _get_str(self, message, level, _colors=None):
+        """
+        Get the colored string given the Logger's fstr.
+        The _colors option is to override the user's given colors.
+        """
         mll = len(message) if self.max_line_length is None else self.max_line_length
         for m in [message[i:i+mll] for i in range(0, len(message), mll)]:
-            f = [MACROS.get(macro, f"'{macro}'") for macro in self.fstr]
-            yield from itertools.starmap(_write, itertools.zip_longest(map(eval, f), colors, fillvalue='black'))
+            split = [i.split(":") if ":" in i else [i, "black"] for i in self.fstr]
+            macros = [MACROS.get(macro, f"'{macro}'") for macro, _ in split]
+            colors = [color for _, color in split] if _colors is None else _colors
+            print(colors)
+            yield from itertools.starmap(_write, itertools.zip_longest(map(eval, macros), colors, fillvalue='black'))
             yield None
-            
+
+    def _output(self, message, level, file, _colors=None):
+        """
+        Utility method to output message with given level to given file.
+        """
+        for colored_str in self._get_str(message, level, _colors=_colors):
+            if colored_str is None:
+                print(file=file)
+            else:
+                print(colored_str, end=' ', file=file)
+                
     def debug(self, message):
+        """
+        The default debug method to output to a file without colors.
+        """
         with open(self.file, 'a') as file:
-            for colored_str in self._get_str(message, "DEBUG", ["none"] * 4):
-                if colored_str is None:
-                    print(file=file)
-                else:
-                    print(colored_str, end=' ', file=file)
+            self._output(message, "DEBUG", file, _colors=["none"]*len(self.fstr))
 
     def info(self, message):
-        for colored_str in self._get_str(message, 'INFO', self.colors):
-            if colored_str is None:
-                print()
-            else:
-                print(colored_str, end=' ')
+        """
+        The default info method to log to stdout with given colors.
+        """
+        self._output(message, "INFO", sys.stdout)
 
     def config(self, **config):
-        attrs = ['file', 'user', 'colors', 'fstr', 'max_line_length']
+        """
+        Configure the Logger with the given keyword arguments.
+        """
+        attrs = ['file', 'user', 'fstr', 'max_line_length', 'datefmt']
         for name, value in config.items():
             if name in attrs:
                 setattr(self, name, value)
                 
 _logger = Logger()
 
+"""
+The following are utility methods that act on a shared Logger instance.
+You can either call these directly from the module, or instantiate
+a Logger class and log with that.
+"""
 def set_file(f):
     _logger.file = f
 
