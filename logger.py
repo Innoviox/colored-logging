@@ -52,7 +52,7 @@ def _write(m, color):
 class Logger:
     def __init__(self, file=f'logs/nephos.log', user=os.getlogin(),
                  fstr=['$T:BLUE', '$U:MAGENTA', '$L:CYAN', '$M'],
-                 max_line_length=20, datefmt='%m/%d/%Y %H:%M:%S'):
+                 max_line_length=50, datefmt='%m/%d/%Y %H:%M:%S'):
         """
         This class handles the logging. Multiple Loggers can be instantiated.
         file: the file to write to in DEBUG mode
@@ -77,8 +77,7 @@ class Logger:
             split = [i.split(":") if ":" in i else [i, "black"] for i in self.fstr]
             macros = [MACROS.get(macro, f"'{macro}'") for macro, _ in split]
             colors = [color for _, color in split] if _colors is None else _colors
-            print(colors)
-            yield from itertools.starmap(_write, itertools.zip_longest(map(eval, macros), colors, fillvalue='black'))
+            yield from itertools.starmap(_write, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
             yield None
 
     def _output(self, message, level, file, _colors=None):
@@ -96,7 +95,7 @@ class Logger:
         The default debug method to output to a file without colors.
         """
         with open(self.file, 'a') as file:
-            self._output(message, "DEBUG", file, _colors=["none"]*len(self.fstr))
+            self._output(message, "DEBUG", file, _colors=["none"])
 
     def info(self, message):
         """
