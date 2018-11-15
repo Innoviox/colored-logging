@@ -74,7 +74,7 @@ class Logger:
         """
         mll = len(message) if self.max_line_length is None else self.max_line_length
         for m in [message[i:i+mll] for i in range(0, len(message), mll)]:
-            split = [i.split(":") if ":" in i else [i, "black"] for i in self.fstr]
+            split = [i.split(":") if ":" in i else [i, "none"] for i in self.fstr]
             macros = [MACROS.get(macro, f"'{macro}'") for macro, _ in split]
             colors = [color for _, color in split] if _colors is None else _colors
             yield from itertools.starmap(_write, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
