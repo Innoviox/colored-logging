@@ -38,7 +38,7 @@ MACROS = {
     "$M": "m"
 }
 
-def _write(m, color):
+def _colorize(m, color):
     """
     Returns a string colored with the given color.
     If the color is not a valid member of the Colors
@@ -77,7 +77,7 @@ class Logger:
             split = [i.split(":") if ":" in i else [i, "none"] for i in self.fstr]
             macros = [MACROS.get(macro, f"'{macro}'") for macro, _ in split]
             colors = [color for _, color in split] if _colors is None else _colors
-            yield from itertools.starmap(_write, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
+            yield from itertools.starmap(_colorize, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
             yield None
 
     def _output(self, message, level, file, _colors=None):
