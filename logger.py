@@ -46,11 +46,11 @@ def _colorize(m, color):
     """
     c = color.upper()
     if c in Colors.__members__:
-        return f"{Colors[c].value}{m}{Colors['RESET'].value}"
+        return Colors[c].value + m + Colors.RESET.value
     return m
 
 class Logger:
-    def __init__(self, file=f'logs/nephos.log', user=os.getlogin(),
+    def __init__(self, file='logs/nephos.log', user=os.getlogin(),
                  fstr=['$T:BLUE', '$U:MAGENTA', '$L:CYAN', '$M'],
                  max_line_length=50, datefmt='%m/%d/%Y %H:%M:%S'):
         """
@@ -75,7 +75,7 @@ class Logger:
         mll = len(message) if self.max_line_length is None else self.max_line_length
         for m in [message[i:i+mll] for i in range(0, len(message), mll)]:
             split = [i.split(":") if ":" in i else [i, "none"] for i in self.fstr]
-            macros = [MACROS.get(macro, f"'{macro}'") for macro, _ in split]
+            macros = [MACROS.get(macro, "'{}'".format(macro)) for macro, _ in split]
             colors = [color for _, color in split] if _colors is None else _colors
             yield from itertools.starmap(_colorize, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
             yield None
