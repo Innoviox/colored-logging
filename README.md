@@ -1,5 +1,5 @@
 # colored-logging
-Colored logging for Nephos, with Google Code In
+Colored logging for Nephos, with Google Code In (username: rassarian).
 
 Sample usage (in main.py):
 
