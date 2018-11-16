@@ -25,7 +25,7 @@ class Colors(enum.Enum):
 """
 These macros are expanded from the Logger.fstr attribute.
 Anything that is not in these macros will be interpreted
-as a raw string. For example, if Logger.fstr is ['$T', '$U', '$M'],
+as a raw string. For example, if Logger.fstr is '$T $U $M',
 the output will be the time, the user, and the message. The
 output is space-separated. If you want part of the
 output to be colored, put the color after like this: $T:RED.
@@ -51,7 +51,7 @@ def _colorize(m, color):
 
 class Logger:
     def __init__(self, file='logs/nephos.log', user=os.getlogin(),
-                 fstr=['$T:BLUE', '$U:MAGENTA', '$L:CYAN', '$M'],
+                 fstr='$T:BLUE $U:MAGENTA $L:CYAN $M',
                  max_line_length=50, datefmt='%m/%d/%Y %H:%M:%S'):
         """
         This class handles the logging. Multiple Loggers can be instantiated.
@@ -74,7 +74,7 @@ class Logger:
         """
         mll = len(message) if self.max_line_length is None else self.max_line_length
         for m in [message[i:i+mll] for i in range(0, len(message), mll)]:
-            split = [i.split(":") if ":" in i else [i, "none"] for i in self.fstr]
+            split = [i.split(":") if ":" in i else [i, "none"] for i in self.fstr.split()]
             macros = [MACROS.get(macro, "'{}'".format(macro)) for macro, _ in split]
             colors = [color for _, color in split] if _colors is None else _colors
             yield from itertools.starmap(_colorize, itertools.zip_longest(map(eval, macros), colors, fillvalue='none'))
